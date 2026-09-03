@@ -1,0 +1,17 @@
+{
+  "name": "salim-hosting",
+  "version": "2.0.0",
+  "description": "SALIM HOSTING - A self-hosted multi-user panel to deploy, run and manage Python (or any) scripts, bots and projects, with admin user management.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "multer": "^1.4.5-lts.1",
+    "bcryptjs": "^2.4.3"
+  },
+  "author": "SALIM",
+  "license": "MIT"
+}

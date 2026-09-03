@@ -1,0 +1,11 @@
+# Tells Railway's Nixpacks builder to include Node.js, Python3 and git
+# so the panel can install pip packages and run python scripts / deploy repos.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "python3", "python3Packages.pip", "git"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[start]
+cmd = "node server.js"
