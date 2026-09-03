@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login | SALIM HOSTING</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="screen">
+  <div class="login-card">
+    <div class="logo">☁️</div>
+    <h1>SALIM <span>HOSTING</span></h1>
+    <p class="subtitle">Premium Hosting Solution</p>
+
+    <label>Username</label>
+    <input type="text" id="loginUsername" placeholder="" />
+
+    <label>Password</label>
+    <input type="password" id="loginPassword" placeholder="" />
+
+    <button id="loginBtn" class="btn btn-primary">→ Login</button>
+    <p class="error" id="loginError"></p>
+    <p class="secure">🛡 Secure Access Only</p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="screen hidden">
+  <div id="viewAsBanner" class="viewas-banner hidden">
+    👑 Admin viewing as <b id="viewAsName"></b>
+    <button id="exitViewAsBtn" class="btn btn-outline small">← Back to my account</button>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo small">☁️</div>
+      <div>
+        <h2>SALIM <span>HOSTING</span></h2>
+        <p id="topUsername" class="sub-username">SALIM</p>
+      </div>
+    </div>
+    <button id="logoutBtn" class="logout">⏻ Logout</button>
+  </header>
+
+  <div class="status-card">
+    <div class="status-row">
+      <span>ID: <b id="instanceId" class="accent">-</b></span>
+      <span>CPU Limit: <b id="cpuLimit" class="warn">-</b></span>
+      <span>Expires: <b id="expires" class="warn">-</b></span>
+    </div>
+    <div class="control-row">
+      <button id="startBtn" class="btn btn-start">▶ START</button>
+      <button id="stopBtn" class="btn btn-stop">■ STOP</button>
+      <button id="restartBtn" class="btn btn-restart">↻ RESTART</button>
+      <button id="clearBtn" class="btn btn-clear">🧹 CLEAR</button>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="console">&gt;_ Console</button>
+    <button class="tab" data-tab="files">📁 Files</button>
+    <button class="tab" data-tab="github">🐙 GitHub</button>
+    <button class="tab" data-tab="startup">🚀 Startup</button>
+    <button class="tab" data-tab="profile">👤 My Profile</button>
+    <button class="tab hidden" id="adminTabBtn" data-tab="admin">👑 Admin</button>
+  </nav>
+
+  <!-- CONSOLE TAB -->
+  <section id="tab-console" class="tab-panel active">
+    <div class="panel">
+      <div class="console-box" id="consoleOutput"></div>
+      <div class="console-input-row">
+        <span class="prompt">$</span>
+        <input type="text" id="consoleCommand" placeholder="Type command..." disabled />
+        <button class="btn btn-primary small" id="sendCmdBtn" disabled>➤ Send</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILES TAB -->
+  <section id="tab-files" class="tab-panel">
+    <div class="panel">
+      <div class="files-toolbar">
+        <span id="currentPath" class="current-path">📁 /</span>
+        <input type="file" id="fileInput" multiple hidden />
+        <button class="btn btn-primary small" id="uploadBtn">⬆ Upload (Max 50MB)</button>
+        <button class="btn btn-outline small" id="newFolderBtn">＋ Folder</button>
+        <button class="btn btn-outline small" id="newFileBtn">File</button>
+      </div>
+      <div id="filesList" class="files-list"></div>
+    </div>
+  </section>
+
+  <!-- GITHUB TAB -->
+  <section id="tab-github" class="tab-panel">
+    <div class="panel">
+      <div class="card">
+        <h3>🌐 Public Repository</h3>
+        <p class="muted">No token required</p>
+        <label>Repo URL</label>
+        <input type="text" id="publicRepoUrl" placeholder="https://github.com/user/repo" />
+        <button class="btn btn-deploy-public" id="deployPublicBtn">⬇ Deploy Public Repo</button>
+      </div>
+      <div class="card">
+        <h3>🔒 Private Repository</h3>
+        <p class="muted">Access token required</p>
+        <label>Repo URL</label>
+        <input type="text" id="privateRepoUrl" placeholder="https://github.com/user/repo" />
+        <label>Access Token</label>
+        <input type="password" id="privateRepoToken" placeholder="ghp_xxxxxxxxxxxx" />
+        <button class="btn btn-deploy-private" id="deployPrivateBtn">⬇ Deploy Private Repo</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STARTUP TAB -->
+  <section id="tab-startup" class="tab-panel">
+    <div class="panel">
+      <div class="card">
+        <h3>⚙ Startup Config</h3>
+        <label>Main File *</label>
+        <input type="text" id="mainFile" placeholder="main.py" />
+        <label>Requirements File</label>
+        <input type="text" id="requirementsFile" placeholder="requirements.txt" />
+        <button class="btn btn-primary" id="saveStartupBtn">💾 Save</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE TAB -->
+  <section id="tab-profile" class="tab-panel">
+    <div class="panel">
+      <div class="card">
+        <h3>👤 Account Settings</h3>
+        <p class="muted">Update your hosting credentials</p>
+        <label>New Username</label>
+        <input type="text" id="newUsername" />
+        <label>New Password</label>
+        <input type="password" id="newPassword" placeholder="Enter new password" />
+        <label>Confirm New Password</label>
+        <input type="password" id="confirmPassword" placeholder="Confirm new password" />
+        <button class="btn btn-primary" id="updateCredBtn">✔ Update Credentials</button>
+        <hr />
+        <p class="sysinfo">System Info</p>
+        <p class="sysinfo-item ok">● Node Status: Active</p>
+        <p class="sysinfo-item info">🛡 Security: Encrypted</p>
+        <p class="sysinfo-item muted">⑂ Version: v2.0 Multi-user — Credit: SALIM</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN TAB -->
+  <section id="tab-admin" class="tab-panel">
+    <div class="panel">
+      <div class="card">
+        <h3>👑 Create New User</h3>
+        <label>Username</label>
+        <input type="text" id="newUserUsername" placeholder="e.g. rahim" />
+        <label>Password</label>
+        <input type="password" id="newUserPassword" placeholder="min 6 characters" />
+        <label>Role</label>
+        <select id="newUserRole">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button class="btn btn-primary" id="createUserBtn">＋ Create User</button>
+        <p class="error" id="createUserError"></p>
+      </div>
+      <div class="card">
+        <h3>👥 All Users</h3>
+        <div id="usersList" class="users-list"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
