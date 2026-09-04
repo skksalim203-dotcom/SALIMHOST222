@@ -85,6 +85,21 @@ function publicUser(u) {
   return rest;
 }
 
+// Moves a file, safely handling the case where source and destination are on
+// different mounted filesystems/volumes (fs.renameSync throws EXDEV there).
+function safeMoveFile(src, dest) {
+  try {
+    fs.renameSync(src, dest);
+  } catch (err) {
+    if (err.code === "EXDEV") {
+      fs.copyFileSync(src, dest);
+      fs.unlinkSync(src);
+    } else {
+      throw err;
+    }
+  }
+}
+
 // ---------- Process manager (per user) ----------
 const processManagers = {};
 function getProcessManager(username) {
@@ -408,7 +423,7 @@ app.post("/api/files/upload", requireAuth, upload.array("files"), (req, res) => 
     const base = userWorkspace(effectiveUsername(req));
     const targetDir = safeJoin(base, req.body.path || "");
     for (const f of req.files) {
-      fs.renameSync(f.path, path.join(targetDir, f.originalname));
+      safeMoveFile(f.path, path.join(targetDir, f.originalname));
     }
     res.json({ ok: true });
   } catch (err) {
@@ -445,17 +460,40 @@ function maskUrl(url) {
 function runGitClone(username, url, res) {
   const mgr = getProcessManager(username);
   const wsDir = userWorkspace(username);
+  // Clone into a fresh temp folder first (git refuses to clone into a
+  // non-empty directory), then merge the result into the workspace,
+  // overwriting any files with the same name. This works no matter what
+  // is already sitting in the user's workspace.
+  const tmpCloneDir = path.join(UPLOAD_TMP_DIR, "clone_" + crypto.randomBytes(6).toString("hex"));
+  let responded = false;
+  const respond = (status, payload) => {
+    if (responded) return;
+    responded = true;
+    res.status(status).json(payload);
+  };
+
   mgr.log(`Cloning repository: ${maskUrl(url)}`);
-  const child = spawn("git", ["clone", url, "."], { cwd: wsDir });
+  const child = spawn("git", ["clone", "--depth", "1", url, tmpCloneDir]);
   child.stdout.on("data", (d) => mgr.log(d.toString().trimEnd()));
   child.stderr.on("data", (d) => mgr.log(maskUrl(d.toString().trimEnd())));
+  child.on("error", (err) => {
+    mgr.log(`❌ Could not run git: ${err.message}`);
+    respond(500, { error: "git is not available on this server: " + err.message });
+  });
   child.on("close", (code) => {
-    if (code === 0) {
+    if (code !== 0) {
+      mgr.log("❌ Deploy failed (see the git error above)");
+      respond(400, { error: "Git clone failed, check console" });
+      return;
+    }
+    try {
+      fs.cpSync(tmpCloneDir, wsDir, { recursive: true, force: true });
+      fs.rmSync(tmpCloneDir, { recursive: true, force: true });
       mgr.log("✅ Repository deployed successfully");
-      res.json({ ok: true });
-    } else {
-      mgr.log("❌ Deploy failed");
-      res.status(400).json({ error: "Git clone failed, check console" });
+      respond(200, { ok: true });
+    } catch (err) {
+      mgr.log(`❌ Failed to move cloned files into workspace: ${err.message}`);
+      respond(500, { error: err.message });
     }
   });
 }
@@ -517,6 +555,16 @@ app.get("/u/:username", (req, res) => {
 });
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(APP_ROOT, "public", "index.html"));
+});
+
+// Catch-all error handler: always return JSON, never let a raw stack-trace
+// HTML page leak out (multer errors like "file too large" land here too).
+app.use((err, req, res, next) => {
+  console.error(err);
+  if (err && err.name === "MulterError") {
+    return res.status(400).json({ error: "Upload error: " + err.message });
+  }
+  res.status(500).json({ error: (err && err.message) || "Server error" });
 });
 
 const PORT = process.env.PORT || 26365;
