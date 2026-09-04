@@ -190,14 +190,32 @@ async function loadFiles(p) {
     row.className = "file-row";
     const icon = entry.isDir ? "📁" : "📄";
     const sizeText = entry.isDir ? "-" : formatSize(entry.size);
+    const isZip = !entry.isDir && entry.name.toLowerCase().endsWith(".zip");
     row.innerHTML = `
       <span class="fname">${icon} ${entry.name}</span>
       <span class="fmeta">${sizeText}</span>
+      ${isZip ? '<button class="fextract" title="Extract">📦 Extract</button>' : ""}
       <button class="fdel" title="Delete">🗑</button>
     `;
     row.querySelector(".fname").addEventListener("click", () => {
       if (entry.isDir) loadFiles((p ? p + "/" : "") + entry.name);
     });
+    if (isZip) {
+      row.querySelector(".fextract").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const res = await fetch("/api/files/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: (p ? p + "/" : "") + entry.name }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert("এক্সট্র্যাক্ট ব্যর্থ: " + (data.error || res.status));
+          return;
+        }
+        loadFiles(p);
+      });
+    }
     row.querySelector(".fdel").addEventListener("click", async (e) => {
       e.stopPropagation();
       if (!confirm(`Delete "${entry.name}"?`)) return;

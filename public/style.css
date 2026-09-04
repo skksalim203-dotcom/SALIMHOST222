@@ -182,6 +182,7 @@ body {
 .file-row .fname { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .file-row .fmeta { color: var(--muted); font-size: 12px; text-align: right; }
 .file-row .fdel { color: var(--red); background: none; border: none; cursor: pointer; font-size: 16px; }
+.file-row .fextract { color: var(--blue); background: none; border: 1px solid var(--panel-border); border-radius: 6px; cursor: pointer; font-size: 12px; padding: 4px 8px; white-space: nowrap; }
 
 .sysinfo { color: var(--muted); font-size: 13px; margin-top: 16px; margin-bottom: 6px; }
 .sysinfo-item { margin: 4px 0; font-size: 13px; }
