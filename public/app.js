@@ -222,17 +222,34 @@ $("fileInput").addEventListener("change", async () => {
   const formData = new FormData();
   for (const f of files) formData.append("files", f);
   formData.append("path", currentPath);
-  await fetch("/api/files/upload", { method: "POST", body: formData });
+  try {
+    const res = await fetch("/api/files/upload", { method: "POST", body: formData });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert("আপলোড ব্যর্থ হয়েছে: " + (data.error || res.status));
+      return;
+    }
+  } catch (err) {
+    alert("আপলোড ব্যর্থ হয়েছে: সার্ভারে পৌঁছানো যায়নি");
+    return;
+  } finally {
+    $("fileInput").value = "";
+  }
   loadFiles(currentPath);
 });
 $("newFolderBtn").addEventListener("click", async () => {
   const name = prompt("Folder name:");
   if (!name) return;
-  await fetch("/api/files/folder", {
+  const res = await fetch("/api/files/folder", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path: currentPath, name }),
   });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    alert("ফোল্ডার তৈরি ব্যর্থ: " + (data.error || res.status));
+    return;
+  }
   loadFiles(currentPath);
 });
 $("newFileBtn").addEventListener("click", () => $("fileInput").click());
@@ -242,22 +259,26 @@ $("deployPublicBtn").addEventListener("click", async () => {
   const repoUrl = $("publicRepoUrl").value.trim();
   if (!repoUrl) return alert("Enter a repo URL");
   document.querySelector('.tab[data-tab="console"]').click();
-  await fetch("/api/github/deploy/public", {
+  const res = await fetch("/api/github/deploy/public", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repoUrl }),
   });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) alert("ডিপ্লয় ব্যর্থ: " + (data.error || res.status) + " (Console ট্যাবে বিস্তারিত দেখুন)");
 });
 $("deployPrivateBtn").addEventListener("click", async () => {
   const repoUrl = $("privateRepoUrl").value.trim();
   const token = $("privateRepoToken").value.trim();
   if (!repoUrl || !token) return alert("Enter repo URL and access token");
   document.querySelector('.tab[data-tab="console"]').click();
-  await fetch("/api/github/deploy/private", {
+  const res = await fetch("/api/github/deploy/private", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repoUrl, token }),
   });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) alert("ডিপ্লয় ব্যর্থ: " + (data.error || res.status) + " (Console ট্যাবে বিস্তারিত দেখুন)");
 });
 
 // ---------- Startup config ----------
@@ -327,7 +348,11 @@ $("createUserBtn").addEventListener("click", async () => {
 
 async function loadUsers() {
   const res = await fetch("/api/admin/users");
-  if (!res.ok) return;
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    $("usersList").innerHTML = `<p class="error">ইউজার লিস্ট লোড ব্যর্থ: ${data.error || res.status}</p>`;
+    return;
+  }
   const data = await res.json();
   const list = $("usersList");
   list.innerHTML = "";
