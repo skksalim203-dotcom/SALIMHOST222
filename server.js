@@ -21,6 +21,7 @@ const express = require("express");
 const session = require("express-session");
 const multer = require("multer");
 const bcrypt = require("bcryptjs");
+const AdmZip = require("adm-zip");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -85,19 +86,13 @@ function publicUser(u) {
   return rest;
 }
 
-// Moves a file, safely handling the case where source and destination are on
-// different mounted filesystems/volumes (fs.renameSync throws EXDEV there).
+// Moves a file into the workspace. We always copy-then-delete instead of
+// rename(): rename() can fail with EXDEV (different mounted volumes) or,
+// under some container/volume setups, even ENOTDIR — copy+unlink avoids
+// both regardless of how the platform mounts the workspace volume.
 function safeMoveFile(src, dest) {
-  try {
-    fs.renameSync(src, dest);
-  } catch (err) {
-    if (err.code === "EXDEV") {
-      fs.copyFileSync(src, dest);
-      fs.unlinkSync(src);
-    } else {
-      throw err;
-    }
-  }
+  fs.copyFileSync(src, dest);
+  fs.unlinkSync(src);
 }
 
 // ---------- Process manager (per user) ----------
@@ -137,9 +132,9 @@ function getProcessManager(username) {
         const child = spawn("python3", [mainFile], { cwd: wsDir });
         this.child = child;
         this.status = "running";
-        this.pid = child.pid;
+        this.pid = child.pid || null;
         this.log(`Server marked as running`);
-        this.log(`PID: ${child.pid}`);
+        this.log(`PID: ${child.pid || "N/A"}`);
 
         child.stdout.on("data", (data) => this.log(data.toString().trimEnd()));
         child.stderr.on("data", (data) => this.log("⚠️ " + data.toString().trimEnd()));
@@ -439,6 +434,35 @@ app.post("/api/files/folder", requireAuth, (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Extracts a .zip file already sitting in the workspace into its own folder
+// (named after the zip, without the .zip extension) in the same directory.
+app.post("/api/files/extract", requireAuth, (req, res) => {
+  try {
+    const base = userWorkspace(effectiveUsername(req));
+    const zipPath = safeJoin(base, req.body.path || "");
+    if (!zipPath.toLowerCase().endsWith(".zip")) {
+      return res.status(400).json({ error: "Only .zip files can be extracted" });
+    }
+    if (!fs.existsSync(zipPath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+    const parentDir = path.dirname(zipPath);
+    const baseName = path.basename(zipPath, ".zip");
+    let destDir = path.join(parentDir, baseName);
+    let n = 1;
+    while (fs.existsSync(destDir)) {
+      destDir = path.join(parentDir, `${baseName}_${n}`);
+      n++;
+    }
+    fs.mkdirSync(destDir, { recursive: true });
+    const zip = new AdmZip(zipPath);
+    zip.extractAllTo(destDir, true);
+    res.json({ ok: true, extractedTo: path.relative(base, destDir) });
+  } catch (err) {
+    res.status(400).json({ error: "Extract failed: " + err.message });
   }
 });
 
